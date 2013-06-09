@@ -1,0 +1,37 @@
+#!/bin/sh
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+set -ex
+
+. `dirname ${0}`/bigtop.bom
+
+cat <<__EOT__ >> ivy/libraries.properties
+hbase.version=$HBASE_VERSION
+hive.version=$HIVE_VERSION
+zookeeper.version=$ZOOKEEPER_VERSION
+hadoop-common.version=$HADOOP_VERSION
+hadoop-hdfs.version=$HADOOP_VERSION
+hadoop-mapreduce.version=$HADOOP_VERSION
+__EOT__
+
+BUILD_OPTS="-Djavac.version=1.6 -Dforrest.home=${FORREST_HOME} -Dversion=${PIG_VERSION} -Dhadoopversion=23"
+
+rm test/org/apache/pig/test/TestHBaseStorage.java
+ant $BUILD_OPTS clean jar jar-withouthadoop pigunit-jar smoketests-jar "$@"
+for build_file in contrib/piggybank/java/build.xml contrib/penny/java/build.xml contrib/zebra/build.xml ; do
+  ant $BUILD_OPTS -buildfile $build_file clean jar "$@"
+done
+ant $BUILD_OPTS tar "$@"
